@@ -9,11 +9,30 @@ const {
 	updateLocalJsonData,
 	zerotierStatus,
 	closeNetwork,
-	updateLoaclNetwork
+	updateLoaclNetwork,
+	authAdminToken,
+	networkAdminService,
+	syncNetworkMember,
+	checkMemberName,
 } = missionBus
-
-//更新昵称
-const updateNickname = () => updateLocalJsonData()
+import { vMouseMenuDirective } from './MouseMenu.vue'
+const vMouseMenu = vMouseMenuDirective
+const icons = inject('icons') as Record<string, string>
+//更新本地昵称
+const updateNickname = () => {
+	updateLocalJsonData()
+	syncNickname()
+}
+//网络同步昵称
+const syncNickname = ()=>{
+	if (selectedNetworkId.value) {
+		let netId = selectedNetworkId.value
+		checkMemberName(netId, {
+			id: zerotierStatus.address,
+			name: localJsonData.nickname
+		})
+	}
+}
 //网络列表 展示用的
 const joinedNetworkList: Ref<userNetwork[]> = computed(() => {
 	//本地网络列表缓存
@@ -81,7 +100,7 @@ const joinNetworkUpdate = (net?: userNetwork) => {
 		selectNetwork(res.data)
 
 		let netIndex = joinedNetworkList.value.findIndex(e => e.id == netId)
-		selectedNetworkCopy.value = joinedNetworkList.value[netIndex]
+		// selectedNetworkCopy.value = joinedNetworkList.value[netIndex]
 	})
 }
 //离开网络
@@ -95,7 +114,7 @@ const leaveNetwork = () => {
 			if (netIndex >= 0) {
 				joinedNetworkList.value[netIndex]['status'] = 'undefined'
 				updateLocalJsonData()
-				selectedNetworkCopy.value = joinedNetworkList.value[netIndex]
+				// selectedNetworkCopy.value = joinedNetworkList.value[netIndex]
 			}
 			// selectedNetworkId.value = ''
 		})
@@ -104,14 +123,20 @@ const leaveNetwork = () => {
 
 //选中的网络
 const selectedNetworkId = ref('')
-let selectedNetworkCopy: Ref<userNetwork> = ref({});
+// let selectedNetworkCopy: Ref<userNetwork> = ref({});
+const selectedNetworkCopy = computed(() => {
+	let netId = selectedNetworkId.value
+	let netIndex = joinedNetworkList.value.findIndex(e => e.id == netId)
+	return joinedNetworkList.value[netIndex]
+})
 const selectNetwork = (net: userNetwork) => {
 	selectedNetworkId.value = net.id || ''
-	selectedNetworkCopy.value = net
+	// selectedNetworkCopy.value = reactive(net)
 	settingBox.value.allowManaged = net.allowManaged
 	settingBox.value.allowGlobal = net.allowGlobal
 	settingBox.value.allowDefault = net.allowDefault
 	settingBox.value.allowDNS = net.allowDNS
+	syncNickname()
 	// console.log(net)
 	// console.log(settingBox)
 }
@@ -120,13 +145,15 @@ const selectNetwork = (net: userNetwork) => {
 const myip = computed(() => {
 	let arr = selectedNetworkCopy.value.assignedAddresses
 	if (Array.isArray(arr)) {
-		return arr.join(',') || '未分配IP'
+		let str = arr.map(s => s.replace(/\/\d+/, '')).join(',')
+		return str || '未分配IP'
 	} else {
 		return '未分配IP'
 	}
 })
 //状态显示
 let statusMap: Record<string, string[]> = {
+	'OK': ['连接成功', '#00c500', 'pass'],
 	'REQUESTING_CONFIGURATION': ['等待授权', '#1296db', 'wait'],
 	"ACCESS_DENIED": ['等待授权', '#1296db', 'wait'],
 	'undefined': ['未连接', '#8A8A8A', 'closed']
@@ -149,6 +176,81 @@ const listStatus = (status: string | undefined) => {
 	let [name, color, icon] = statusMap[String(status)]
 	return icon
 }
+//管理器功能
+const adminToken = ref('')
+const adminTokenNetId = ref()
+const adminTokenShow = ref(false)
+const adminTokenShowConfirm = () => {
+	//验证网络管理权限
+	let netId = adminTokenNetId.value as string
+	let token = adminToken.value
+	authAdminToken(netId, token)
+	adminTokenShow.value = false
+}
+//网络列表右键菜单
+const listMouseContxt: (net: userNetwork) => any[] = (net: userNetwork) => {
+	return [{
+		label: '管理员Token',
+		callback: () => {
+			//弹窗输入id
+			adminToken.value = net.Authorization?.replace('token ', '') || ''
+			adminTokenShow.value = true
+			adminTokenNetId.value = net.id
+		}
+	}]
+}
+//网络成员列表
+const memberList = computed(() => {
+	if (selectedNetworkId.value) {
+		let net = localJsonData.joinedNetworkList?.find(e => e.id == selectedNetworkId.value)
+		//自己放前面，图标特殊颜色，管理员特殊颜色
+		let list = net?.memberList?.map((me: any) => {
+			let icon = 'user'
+			let sortc = 3
+			if (me.id == zerotierStatus.address) {
+				icon = 'user-self'
+				sortc = 2
+			}
+			if (net?.adminIds?.includes(me.id)) {
+				icon = 'user-admin'
+				sortc = 1
+			}
+			return {
+				...me,
+				icon,
+				sortc
+			}
+		}).sort((a, b) => a.sortc - b.sortc)
+		return list
+	}
+	return []
+})
+//网络成员右键菜单
+const memberMouseContxt: (member: any) => any[] = (member: any) => {
+	return [{
+		label: 'ID: ' + member.id,
+		callback: () => {
+			copyText(member.id)
+		}
+	},/* {
+		label: '昵称: '+ member.name,
+		callback: () => {}
+	}, */{
+		label: 'IP: ' + member.ip,
+		callback: () => {
+			copyText(member.ip)
+		}
+	}, {
+		label: '给ta传文件',
+		callback: () => {
+			window.$message('下版本一定')
+		}
+	}]
+}
+//刷新网络成员
+const memberRefresh = (net: userNetwork) => {
+	syncNetworkMember(String(net.id))
+}
 
 //点击复制
 const copyText = (text: string | number | undefined) => {
@@ -158,6 +260,7 @@ const copyText = (text: string | number | undefined) => {
 	}
 }
 </script>
+
 <template>
 	<div class="join-page">
 		<!-- 网络列表 -->
@@ -168,7 +271,7 @@ const copyText = (text: string | number | undefined) => {
 				</div>
 				<div class="info-item">
 					<div>ID</div>
-					<div style="font-size: 1.05rem;cursor: pointer;">
+					<div style="font-size: 1.05rem;cursor: pointer;" @click="copyText(zerotierStatus.address)">
 						<span>{{ zerotierStatus.address }}</span>
 						<!-- <img src="/copy.svg" /> -->
 					</div>
@@ -180,16 +283,16 @@ const copyText = (text: string | number | undefined) => {
 			</div>
 			<div class="list-title">
 				<div>网络列表</div>
-				<div class="icons"><img @click="joinNetworkDialog" title="添加" src="/add.svg" /></div>
+				<div class="icons"><img @click="joinNetworkDialog" title="添加" :src="icons.add" /></div>
 			</div>
 			<div class="list">
 				<div v-for="net in joinedNetworkList" class="list-item" @click="selectNetwork(net)"
-					@dblclick="joinNetworkUpdate(net)">
-					<img style="transform: translateY(1px);" src="/vlan.svg" />
+					@dblclick="joinNetworkUpdate(net)" v-mouse-menu="listMouseContxt(net)">
+					<img style="transform: translateY(1px);" :src="icons.vlan" />
 					<span class="text">{{ net.name || net.id }}</span>
-					<img v-show="listStatus(net.status) == 'pass'" class="pass" src="/pass.svg" />
-					<img v-show="listStatus(net.status) == 'wait'" class="pass" src="/wait.svg" />
-					<img class="delete" @click.stop title="删除" src="/delete.svg" />
+					<img v-show="listStatus(net.status) == 'pass'" class="pass" :src="icons.pass" />
+					<img v-show="listStatus(net.status) == 'wait'" class="pass" :src="icons.wait" />
+					<img class="delete" @click.stop title="删除" :src="icons.delete" />
 				</div>
 			</div>
 		</div>
@@ -197,11 +300,13 @@ const copyText = (text: string | number | undefined) => {
 			<template v-if="selectedNetworkId">
 				<div class="top">
 					<div class="info">
-						<span class="name" :title="selectedNetworkCopy.name || ''">{{ selectedNetworkCopy.name || '未知网络名' }}</span>
-						<span>ID <span class="underline" @click="copyText(selectedNetworkCopy.id)">{{ selectedNetworkCopy.id
-						}}</span></span>
+						<span class="name" :title="selectedNetworkCopy.name || ''">{{ selectedNetworkCopy.name ||
+						'未知网络名' }}</span>
+						<span>ID <span class="underline" @click="copyText(selectedNetworkCopy.id)">{{
+						selectedNetworkCopy.id
+					}}</span></span>
 						<span>IP <span class="underline" @click="copyText(myip)">{{ myip }}</span></span>
-						<span :style="{ color: myStatus.color }">{{ myStatus.name }}</span>
+						<span :style="{ color: myStatus.color }" style="text-align: right;">{{ myStatus.name }}</span>
 					</div>
 					<div class="setting">
 						<div class="button">
@@ -211,7 +316,8 @@ const copyText = (text: string | number | undefined) => {
 								<span class="text">启用连接</span>
 							</div>
 							<div class="setting-item">
-								<checkbox v-model:value="settingBox.allowGlobal" @update:value="settingBoxUpdate" keyname="allowGlobal" />
+								<checkbox v-model:value="settingBox.allowGlobal" @update:value="settingBoxUpdate"
+									keyname="allowGlobal" />
 								<span class="text">全局连接</span>
 							</div>
 						</div>
@@ -223,18 +329,21 @@ const copyText = (text: string | number | undefined) => {
 				</div>
 				<div class="right-body">
 					<div class="member">
-						<div class="member-title">网络成员</div>
+						<div class="member-title">
+							<span>网络成员</span>
+							<img class="refresh" :src="icons.refresh" @click="memberRefresh(selectedNetworkCopy)" />
+						</div>
 						<div class="member-grid">
-							<div v-for="i in 5" class="member-item">
-								<img class="icon" src="/user.svg" />
-								<div class="name">昵称</div>
+							<div v-for="m in memberList" v-mouse-menu="memberMouseContxt(m)" class="member-item">
+								<img class="icon" :src="icons[m.icon]" />
+								<div class="name">{{ m.name || m.id }}</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</template>
 			<div v-else class="empty-body">
-				<img class="icon" src="/ZeroTier.png" />
+				<img class="icon" :src="icons.ZeroTier" />
 				<div class="empty-button" @click="joinNetworkDialog">
 					添加网络
 				</div>
@@ -251,9 +360,16 @@ const copyText = (text: string | number | undefined) => {
 				<input v-model="joinNetworkId" class="input">
 			</div>
 		</Dialog>
+		<Dialog v-model:show="adminTokenShow" title="管理员Token" @confirm="adminTokenShowConfirm">
+			<div class="net-id-input">
+				<!-- <div>网络ID</div> -->
+				<input v-model="adminToken" class="input">
+			</div>
+		</Dialog>
 
 	</div>
 </template>
+
 <style lang="less" scoped>
 .join-page {
 	@title-size: 1.1rem;
@@ -358,6 +474,7 @@ const copyText = (text: string | number | undefined) => {
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
+				width: 7.5rem;
 			}
 		}
 	}
@@ -405,12 +522,14 @@ const copyText = (text: string | number | undefined) => {
 				.close {
 					color: #ff7973;
 					font-size: .9rem;
+
 					.link {
 						cursor: pointer;
 						color: #FDB25D;
 						margin: 0 1rem 0 0;
 					}
-					.leave{
+
+					.leave {
 						cursor: pointer;
 					}
 				}
@@ -427,12 +546,12 @@ const copyText = (text: string | number | undefined) => {
 			}
 
 			.name {
-				font-size: 1.2rem;
+				font-size: 1.1rem;
 				color: #FDB25D;
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
-				max-width: 25%;
+				max-width: 8rem;
 			}
 		}
 
@@ -453,6 +572,12 @@ const copyText = (text: string | number | undefined) => {
 
 				.member-title {
 					font-size: .9rem;
+					display: flex;
+
+					.refresh {
+						margin: 0 0 0 1rem;
+						cursor: pointer;
+					}
 				}
 
 				.member-grid {

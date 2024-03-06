@@ -9,8 +9,9 @@ contextBridge.exposeInMainWorld('nodeAPI', {
   readData: () => ipcRenderer.invoke('readData'),
   starteZero: () => ipcRenderer.invoke('starteZero'),
   writeData: (json) => ipcRenderer.invoke('writeData', json),
+  requestMember: (data) => ipcRenderer.invoke('requestMember', data),
+  onWebContentsSend: (callback) => ipcRenderer.on('onWebContentsSend', (_event, value) => callback(value))
 })
-
 // `exposeInMainWorld` can't detect attributes and methods of `prototype`, manually patching it.
 function withPrototype(obj: Record<string, any>) {
   const protos = Object.getPrototypeOf(obj)

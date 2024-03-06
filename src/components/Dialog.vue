@@ -15,7 +15,7 @@ defineEmits(['update:show', 'confirm'])
         <div v-show="show" class="dialog">
           <div class="title">
             <div>{{ title }}</div>
-            <img @click="$emit('update:show', false)" class="close" title="关闭" src="/delete.svg" />
+            <img @click="$emit('update:show', false)" class="close" title="关闭" src="@/assets/delete.svg" />
           </div>
           <slot></slot>
           <div class="btns">

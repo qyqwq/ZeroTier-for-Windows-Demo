@@ -13,6 +13,8 @@ interface IElectronAPI {
   readData: () => Promise<any>;
   starteZero: () => Promise<any>;
   writeData: (Object) => Promise<any>;
+  requestMember: ({ }) => Promise<any>;
+  onWebContentsSend: (data: any) => void;
 }
 type apiresult = { code: number; status: string, data: any };
 
@@ -20,8 +22,8 @@ interface Window {
   // expose in the `electron/preload/index.ts`
   ipcRenderer: import('electron').IpcRenderer;
   nodeAPI: IElectronAPI;
-  $message: (option: string | Object)=>void;
-  $modal: (option: string | Object)=>Promise<any>;
+  $message: (option: string | Object) => void;
+  $modal: (option: string | Object) => Promise<any>;
 }
 interface missionObject {
   key?: Number; //标记任务id
@@ -49,4 +51,16 @@ interface userNetwork {
   assignedAddresses?: string[];
   type?: string;
   status?: string;
+  Authorization?: string;
+  memberList?: netMember[];
+  adminIds?: any[];//管理员id列表
+}
+interface netMember{
+  id?: string;
+  authorized?: Boolean;
+  lastSeen?: Number;
+  nodeId?: string;
+  networkId?: string;
+  name?: string;
+  ip?: string;
 }

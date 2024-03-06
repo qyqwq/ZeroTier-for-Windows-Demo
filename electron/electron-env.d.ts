@@ -1,4 +1,5 @@
 /// <reference types="vite-plugin-electron/electron-env" />
+import { AxiosRequestConfig } from 'axios'
 
 declare namespace NodeJS {
   interface ProcessEnv {
@@ -8,4 +9,7 @@ declare namespace NodeJS {
     /** /dist/ or /public/ */
     VITE_PUBLIC: string
   }
+}
+export interface nodejsRequest extends AxiosRequestConfig {
+  type?: 'official' | 'local';
 }

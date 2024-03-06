@@ -1,14 +1,23 @@
-import { app, BrowserWindow, shell, ipcMain, Menu } from 'electron'
+import { ipcMain } from 'electron'
 import fs from 'node:fs/promises'
 import axios from 'axios'
-import { spawn } from 'node:child_process'
+import { spawn, fork } from 'node:child_process'
 import path from 'path';
 import { errcodeMatch, CodeName } from '../utils/errcode';
+import { nodejsRequest } from '../electron-env';
+import { sendlog } from '../utils/log';
+import { onWebContentsSend } from './index'
+import './nodeServe'
+
+const localHref = 'http://localhost:9993/'
+const officialHref = 'https://api.zerotier.com/api/v1/'
+const childServePost = 7711
+
 const errreg = new RegExp(Object.keys(errcodeMatch).join('|'), 'ig')
 // 读取token存起来
 let zeroToken = ''
 ipcMain.handle('readZerotierToken', async () => {
-  console.log(zeroToken)
+  sendlog.log('读取到token', zeroToken)
   return new Promise((resolve, reject) => {
     if (zeroToken) {
       resolve({
@@ -37,22 +46,33 @@ ipcMain.handle('readZerotierToken', async () => {
   })
 })
 
-//发送请求
-ipcMain.handle('requestApi', async (event, option: import('axios').AxiosRequestConfig) => {
-  // console.log(option)
+//发送请求 import('axios').AxiosRequestConfig
+ipcMain.handle('requestApi', async (event, option: nodejsRequest) => {
+  // sendlog.log(option)
   // return errcodeevent
   let {
     url,
     method = 'get',
     params,
-    data
+    data,
+    headers,
+    type = 'local'
   } = option
+  let baseurl = localHref
+  let baseHeaders: {} = {
+    'X-ZT1-Auth': zeroToken,
+  }
+  if (type == 'official') {
+    baseurl = officialHref
+    baseHeaders = {}
+  }
   return new Promise((resolve, reject) => {
     axios({
-      url: 'http://localhost:9993/' + url,
+      url: baseurl + url,
       method,
       headers: {
-        'X-ZT1-Auth': zeroToken,
+        ...baseHeaders,
+        ...headers
       },
       params,
       data
@@ -63,9 +83,10 @@ ipcMain.handle('requestApi', async (event, option: import('axios').AxiosRequestC
         data: res.data
       })
     }).catch(e => {
-      console.error(e.message,e)
+      sendlog.error('requestApi', e.message,e.config)
+      // sendlog.log(e)
       let mat = e.message.match(errreg) || []
-      let code = errcodeMatch[mat[0]]
+      let code = errcodeMatch[mat[0]] || e.response.status
       resolve({
         status: 'error',
         code,
@@ -81,7 +102,7 @@ ipcMain.handle('installZero', () => {
     const executablePath = process.cwd() + '\\ZeroTier One.msi';
     const childProcess = spawn('msiexec', ['/i', executablePath, '/passive']);
     childProcess.stderr.on('data', (data) => {
-      console.error(`stderr: ${data}`);
+      sendlog.error(`stderr: ${data}`);
       resolve({
         status: 'error',
         code: 0,
@@ -89,7 +110,7 @@ ipcMain.handle('installZero', () => {
       })
     });
     childProcess.on('close', (code) => {
-      // console.log(`Child process exited with code ${code}`);
+      // sendlog.log(`Child process exited with code ${code}`);
       resolve({
         status: 'success',
         code: 200,
@@ -113,15 +134,15 @@ ipcMain.handle('readData', async () => {
     }
     fs.readFile(jsonPath, 'utf8').then((content) => {
       mearkJsonStr = content
-      const data = JSON.parse(content||'{}');
-      // console.log(data);
+      const data = JSON.parse(content || '{}');
+      // sendlog.log(data);
       resolve({
         status: 'success',
         code: 200,
         data
       })
     }).catch((err) => {
-      console.error(err);
+      sendlog.error(err);
       resolve({
         status: 'success',
         code: 200,
@@ -132,9 +153,10 @@ ipcMain.handle('readData', async () => {
 
 })
 //写入备注文件
-ipcMain.handle('writeData', async (event,json) => {
+ipcMain.handle('writeData', async (event, json) => {
   return new Promise((resolve, reject) => {
-    console.log(json)
+    // sendlog.log('写入json文件')
+    // sendlog.log(json)
     mearkJsonStr = JSON.stringify(json)
     fs.writeFile(jsonPath, mearkJsonStr, 'utf8').then((content) => {
       resolve({
@@ -143,7 +165,7 @@ ipcMain.handle('writeData', async (event,json) => {
         data: {}
       })
     }).catch((err) => {
-      console.error(err);
+      sendlog.error(err);
       resolve({
         status: 'success',
         code: 200,
@@ -158,9 +180,9 @@ ipcMain.handle('starteZero', () => {
   return new Promise((resolve, reject) => {
     const childProcess = spawn('net', ['start', 'ZeroTier']);
     childProcess.stderr.on('data', (data) => {
-      // console.log(typeof data,data.__proto__,data)
+      // sendlog.log(typeof data,data.__proto__,data)
       // data = new TextDecoder('gbk').decode(data)
-      // console.error(`stderr: ${data}`);
+      // sendlog.error(`stderr: ${data}`);
       resolve({
         status: 'error',
         // code: 0,
@@ -169,7 +191,7 @@ ipcMain.handle('starteZero', () => {
       })
     });
     childProcess.on('close', (code) => {
-      // console.log(`Child process exited with code ${code}`);
+      // sendlog.log(`Child process exited with code ${code}`);
       resolve({
         status: 'success',
         code: 200,
@@ -178,6 +200,45 @@ ipcMain.handle('starteZero', () => {
     });
   })
 })
+//向网络成员发送请求
+ipcMain.handle('requestMember', async (event, oriData: any) => {
+  return new Promise((resolve, reject) => {
+    let { url: apiurl, memberIps = [], data }: { url: string, memberIps: [], data: any } = oriData
+    memberIps.forEach(ip => {
+      let url = `http://${ip}:${childServePost}${apiurl}`
+      // let url = `http://172.25.170.224:${childServePost}/syncNetworkData`
+      sendlog.log('向网络成员发送请求', url)
+      axios({
+        url,
+        method: 'post',
+        data
+      }).then(res => {
+        sendlog.log(ip + '回信', res.data)
+      }).catch(() => { })
+    })
+    resolve({
+      status: 'success',
+      code: 200,
+      data: ''
+    })
+  })
+})
+// let jsPath = path.join(process.cwd(), '/electron/main/nodeServe.cjs')
+// sendlog.log('准备启动Koa服务, 程序路径', jsPath)
+// try {
+//   //子进程启动node服务端
+//   const childServe = fork(jsPath)
+
+//   childServe.on('message', (message) => {
+//     sendlog.log('子进程消息：');
+//     // sendlog.log(`子进程消息：`,message);
+//     onWebContentsSend(message)
+//   });
+// } catch (error) {
+//   sendlog.log(error)
+//   // let data = new TextDecoder('gbk').decode(error.message)
+//   // sendlog.log(data)
+// }
 
 /**
  *  (get) /status 获取状态

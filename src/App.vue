@@ -4,14 +4,19 @@ import Message from './components/Message.vue'
 import { messageApi } from './components/Message.vue'
 import Modal from './components/Modal.vue'
 import { ModalApi } from './components/Modal.vue'
+import MouseMenu from './components/MouseMenu.vue'
 import APIList from './components/APIList.vue'
 import missionBus from '@/utils/missionBus'
-const { missionNoEmpty, missionQuery } = missionBus
+import { sendlog } from '@/utils/log';
+import icons from '@/utils/icons'
+provide('sendlog', sendlog)
+provide('icons', icons)
+const { missionNoEmpty, missionQuery, init } = missionBus
 window.$message = messageApi
 window.$modal = ModalApi
 const tablist = {
   0: '加入网络',
-  1: '创建网络',
+  // 1: '创建网络',
   2: '中转设置'
 }
 const tabSelected: Ref<number> = ref(0);
@@ -29,13 +34,22 @@ const tabSelected: Ref<number> = ref(0);
 //   console.log('onActivated')
 
 // })
+onMounted(() => {
+  init()
+})
+const appClickCount: Ref<number> = ref(0)
+provide('appClickCount', appClickCount)
+const appClick = () => {
+  // console.log('全局点击')
+  appClickCount.value++
+}
 </script>
 
 <template>
-  <div class="main">
+  <div class="main" @click="appClick">
     <div class="title">
       <div class="icon-lable">
-        <img class="icon" src="/ZeroTier.png" />
+        <img class="icon" :src="icons.ZeroTier" />
         <!-- <Transition name="fade"> -->
         <div v-show="missionNoEmpty" class="arrow"></div>
         <!-- </Transition> -->
@@ -48,7 +62,7 @@ const tabSelected: Ref<number> = ref(0);
     </div>
     <div class="main-body">
       <div class="left">
-        <img src="/please.png" />
+        <img :src="icons.please" />
       </div>
       <div class="right">
         <JoinPage v-show="tabSelected == 0" />
@@ -62,7 +76,7 @@ const tabSelected: Ref<number> = ref(0);
             <Transition name="mission-item">
               <div v-show="!fl.finish" class="mission-list-item">
                 <Transition name="fade">
-                  <img v-show="!index" :src="fl.icon" />
+                  <img v-show="!index" :src="icons[fl.icon as string]" />
                 </Transition>
                 <div class="name">{{ fl.name }}</div>
                 <!-- <div class="allow"></div> -->
@@ -75,8 +89,10 @@ const tabSelected: Ref<number> = ref(0);
     <!-- <APIList class="api-list" /> -->
     <Message />
     <Modal />
+    <MouseMenu />
   </div>
 </template>
+
 <style lang="less" scoped>
 .main {
   display: flex;
@@ -96,6 +112,7 @@ const tabSelected: Ref<number> = ref(0);
   font-size: 1.2rem;
   font-weight: bold;
   background-color: #1E1F22;
+  -webkit-app-region:drag;
 
   .icon-lable {
     width: 4rem;
@@ -136,6 +153,7 @@ const tabSelected: Ref<number> = ref(0);
     .tab {
       cursor: pointer;
       margin: 0 1rem;
+      -webkit-app-region:none;
 
       &:hover,
       &.selected {

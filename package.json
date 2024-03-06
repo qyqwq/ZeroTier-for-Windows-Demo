@@ -2,8 +2,8 @@
   "name": "electron-vue-vite",
   "version": "28.0.0",
   "main": "dist-electron/main/index.js",
-  "description": "Really simple Electron + Vue + Vite boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "description": "Integrate all operations of ZeroTier on Windows systems",
+  "author": "轻言QwQ",
   "asarUnpack": true,
   "license": "MIT",
   "private": true,
@@ -16,7 +16,7 @@
   ],
   "debug": {
     "env": {
-      "VITE_DEV_SERVER_URL": "http://127.0.0.1:3344/"
+      "VITE_DEV_SERVER_URL": "http://127.0.0.1:7710/"
     }
   },
   "type": "module",
@@ -30,7 +30,6 @@
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
     "less": "^4.2.0",
-    "naive-ui": "^2.37.3",
     "tree-kill": "^1.2.2",
     "typescript": "^5.3.3",
     "unplugin-auto-import": "^0.17.5",
@@ -43,6 +42,9 @@
   },
   "dependencies": {
     "axios": "^1.6.7",
+    "electron-log": "^5.1.1",
+    "koa": "^2.15.0",
+    "koa-body": "^6.0.1",
     "vue-request": "^2.0.4"
   }
 }

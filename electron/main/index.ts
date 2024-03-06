@@ -1,8 +1,14 @@
-import { app, BrowserWindow, shell, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, Menu, crashReporter } from 'electron'
 import { release } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import './nodeApi'
+import log from 'electron-log/main';
+log.transports.file.resolvePathFn = () => join(process.cwd(), 'logs/main.log');
+log.transports.file.level = 'info';
+log.initialize({ preload: true });
+log.info('----------------Log from the main process-----------');
+crashReporter.start({ uploadToServer: false })
 
 globalThis.__filename = fileURLToPath(import.meta.url)
 globalThis.__dirname = dirname(__filename)
@@ -44,13 +50,17 @@ let win: BrowserWindow | null = null
 const preload = join(__dirname, '../preload/index.mjs')
 const url = process.env.VITE_DEV_SERVER_URL
 const indexHtml = join(process.env.DIST, 'index.html')
+let defaultRendererWin
 
 async function createWindow() {
   win = new BrowserWindow({
-    width: 1300,
-    height: 1000,
+    width: 870,
+    height: 640,
+    minHeight: 640,
+    minWidth: 870,
     title: 'Main window',
     icon: join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    frame: false,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -60,7 +70,14 @@ async function createWindow() {
       // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
       // contextIsolation: false,
     },
+    titleBarOverlay: {
+      color: '#1E1F22',
+      height: 25,
+      symbolColor: 'white'
+    },
+    titleBarStyle: 'hidden'
   })
+  defaultRendererWin = win
 
   if (process.env.VITE_DEV_SERVER_URL) { // electron-vite-vue#298
     win.loadURL(url)
@@ -82,7 +99,7 @@ async function createWindow() {
   })
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 }
-// Menu.setApplicationMenu(null)
+Menu.setApplicationMenu(null)
 app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
@@ -123,3 +140,8 @@ ipcMain.handle('open-win', (_, arg) => {
     childWindow.loadFile(indexHtml, { hash: arg })
   }
 })
+
+//发送node服务器接收到的数据
+export function onWebContentsSend(data) {
+  defaultRendererWin.webContents.send('onWebContentsSend', data)
+}

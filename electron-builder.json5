@@ -3,9 +3,9 @@
  */
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "qyniya",
   "asar": true,
-  "productName": "YourAppName",
+  "productName": "ZeroTier for Windows",
   "directories": {
     "output": "release/${version}"
   },
@@ -20,6 +20,7 @@
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {
+    "requestedExecutionLevel": "requireAdministrator",
     "target": [
       {
         "target": "nsis",
@@ -28,7 +29,8 @@
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    "artifactName": "${productName}-Windows-${version}-Setup.${ext}",
+    "icon": "ZeroTier.ico"
   },
   "nsis": {
     "oneClick": false,

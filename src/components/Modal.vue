@@ -3,17 +3,17 @@
   <Teleport to="#app">
     <div>
       <Transition name="mark" appear>
-        <div v-show="show" @click="close('cancal')" class="mark"></div>
+        <div v-show="show" @click="close('cancel')" class="mark"></div>
       </Transition>
       <Transition name="dialog" appear>
         <div v-show="show" class="dialog">
           <div class="title">
             <div>{{ dommsg }}</div>
-            <!-- <img @click="close('cancal')" class="close" title="关闭" src="/delete.svg" /> -->
+            <!-- <img @click="close('cancel')" class="close" title="关闭" src="/delete.svg" /> -->
           </div>
           <slot></slot>
           <div class="btns">
-            <div @click="close('cancal')" class="btn">取消</div>
+            <div @click="close('cancel')" class="btn">取消</div>
             <div @click="close('confirm')" class="btn confirm">确认</div>
           </div>
         </div>
@@ -50,7 +50,7 @@ export default {
         if (type == 'confirm') {
           lastPromise.resolve && lastPromise.resolve('confirm')
         } else {
-          lastPromise.reject && lastPromise.reject('cancal')
+          lastPromise.reject && lastPromise.reject('cancel')
         }
       }
       show.value = false
