@@ -10,7 +10,8 @@ contextBridge.exposeInMainWorld('nodeAPI', {
   starteZero: () => ipcRenderer.invoke('starteZero'),
   writeData: (json) => ipcRenderer.invoke('writeData', json),
   requestMember: (data) => ipcRenderer.invoke('requestMember', data),
-  onWebContentsSend: (callback) => ipcRenderer.on('onWebContentsSend', (_event, value) => callback(value))
+  onWebContentsSend: (callback) => ipcRenderer.on('onWebContentsSend', (_event, value) => callback(value)),
+  addTransit: (serveId) => ipcRenderer.invoke('addTransit', serveId),
 })
 // `exposeInMainWorld` can't detect attributes and methods of `prototype`, manually patching it.
 function withPrototype(obj: Record<string, any>) {

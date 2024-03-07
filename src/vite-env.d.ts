@@ -15,6 +15,7 @@ interface IElectronAPI {
   writeData: (Object) => Promise<any>;
   requestMember: ({ }) => Promise<any>;
   onWebContentsSend: (data: any) => void;
+  addTransit: (serveId: any) => Promise<any>;
 }
 type apiresult = { code: number; status: string, data: any };
 

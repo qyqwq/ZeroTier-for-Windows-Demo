@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import JoinPage from './components/JoinPage.vue'
+import Transit from './components/Transit.vue'
 import Message from './components/Message.vue'
 import { messageApi } from './components/Message.vue'
 import Modal from './components/Modal.vue'
@@ -19,24 +20,15 @@ const tablist = {
   // 1: '创建网络',
   2: '中转设置'
 }
-const tabSelected: Ref<number> = ref(0);
-// onMounted(() => {
-//   console.log('onMounted')
-//   window.$message = messageApi
-//   window.$modal = ModalApi
-// })
-// onUpdated(()=>{
-//   console.log('onUpdate')
-//   window.$message = messageApi
-//   window.$modal = ModalApi
-// })
-// onActivated(()=>{
-//   console.log('onActivated')
-
-// })
-onMounted(() => {
-  init()
+let tabComponentMap = {
+  0: JoinPage,
+  2: Transit
+}
+const tabComponent = computed(() => {
+  return tabComponentMap[tabSelected.value]
 })
+
+const tabSelected: Ref<number> = ref(0)
 const appClickCount: Ref<number> = ref(0)
 provide('appClickCount', appClickCount)
 const appClick = () => {
@@ -65,7 +57,9 @@ const appClick = () => {
         <img :src="icons.please" />
       </div>
       <div class="right">
-        <JoinPage v-show="tabSelected == 0" />
+        <KeepAlive>
+          <component :is="tabComponent" />
+        </KeepAlive>
         <!-- <div @click="addmission()">添加</div> -->
         <!-- <div @click="missionStart">执行</div> -->
       </div>
@@ -112,7 +106,7 @@ const appClick = () => {
   font-size: 1.2rem;
   font-weight: bold;
   background-color: #1E1F22;
-  -webkit-app-region:drag;
+  -webkit-app-region: drag;
 
   .icon-lable {
     width: 4rem;
@@ -153,7 +147,7 @@ const appClick = () => {
     .tab {
       cursor: pointer;
       margin: 0 1rem;
-      -webkit-app-region:none;
+      -webkit-app-region: none;
 
       &:hover,
       &.selected {

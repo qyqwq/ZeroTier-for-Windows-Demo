@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import missionBus from '@/utils/missionBus'
+import missionBus from '@/utils/missionBus';
 import { useRequest } from 'vue-request';
 import checkbox from './checkbox.vue';
 import Dialog from './Dialog.vue';
 const {
+	init,
 	joinNetwork,
 	localJsonData,
 	updateLocalJsonData,
@@ -14,17 +15,21 @@ const {
 	networkAdminService,
 	syncNetworkMember,
 	checkMemberName,
+	memberListUpdateCount
 } = missionBus
 import { vMouseMenuDirective } from './MouseMenu.vue'
 const vMouseMenu = vMouseMenuDirective
 const icons = inject('icons') as Record<string, string>
+onMounted(() => {
+	init()
+})
 //更新本地昵称
 const updateNickname = () => {
 	updateLocalJsonData()
 	syncNickname()
 }
 //网络同步昵称
-const syncNickname = ()=>{
+const syncNickname = () => {
 	if (selectedNetworkId.value) {
 		let netId = selectedNetworkId.value
 		checkMemberName(netId, {
@@ -201,22 +206,26 @@ const listMouseContxt: (net: userNetwork) => any[] = (net: userNetwork) => {
 }
 //网络成员列表
 const memberList = computed(() => {
+	console.log('成员列表刷新计数', memberListUpdateCount.value)
+	memberListUpdateCount.value
 	if (selectedNetworkId.value) {
-		let net = localJsonData.joinedNetworkList?.find(e => e.id == selectedNetworkId.value)
+		let memberList = selectedNetworkCopy.value.memberList || reactive([])
+		let adminIds = selectedNetworkCopy.value.adminIds || reactive([])
 		//自己放前面，图标特殊颜色，管理员特殊颜色
-		let list = net?.memberList?.map((me: any) => {
+		let list = memberList.map((member: any) => {
 			let icon = 'user'
 			let sortc = 3
-			if (me.id == zerotierStatus.address) {
+			if (member.id == zerotierStatus.address) {
 				icon = 'user-self'
 				sortc = 2
 			}
-			if (net?.adminIds?.includes(me.id)) {
+			if (adminIds.includes(member.id)) {
 				icon = 'user-admin'
 				sortc = 1
 			}
+			// console.log(member)
 			return {
-				...me,
+				...member,
 				icon,
 				sortc
 			}
@@ -225,27 +234,29 @@ const memberList = computed(() => {
 	}
 	return []
 })
-//网络成员右键菜单
-const memberMouseContxt: (member: any) => any[] = (member: any) => {
-	return [{
-		label: 'ID: ' + member.id,
-		callback: () => {
-			copyText(member.id)
-		}
-	},/* {
-		label: '昵称: '+ member.name,
-		callback: () => {}
-	}, */{
-		label: 'IP: ' + member.ip,
-		callback: () => {
-			copyText(member.ip)
-		}
-	}, {
-		label: '给ta传文件',
-		callback: () => {
-			window.$message('下版本一定')
-		}
-	}]
+const memberMouseContxt = (memberId: string) => {
+	return function () {
+		let member = selectedNetworkCopy.value.memberList?.find(e => e.id == memberId) || {}
+		return [{
+			label: 'ID: ' + member.id,
+			callback: () => {
+				copyText(member.id)
+			}
+		},/* {
+				label: '昵称: '+ member.name,
+				callback: () => {}
+		}, */{
+			label: 'IP: ' + member.ip,
+			callback: () => {
+				copyText(member.ip)
+			}
+		}, {
+			label: '给ta传文件',
+			callback: () => {
+				window.$message('下版本一定')
+			}
+		}]
+	}
 }
 //刷新网络成员
 const memberRefresh = (net: userNetwork) => {
@@ -287,7 +298,7 @@ const copyText = (text: string | number | undefined) => {
 			</div>
 			<div class="list">
 				<div v-for="net in joinedNetworkList" class="list-item" @click="selectNetwork(net)"
-					@dblclick="joinNetworkUpdate(net)" v-mouse-menu="listMouseContxt(net)">
+					@dblclick="joinNetworkUpdate(net)" v-mouse-menu="() => listMouseContxt(net)">
 					<img style="transform: translateY(1px);" :src="icons.vlan" />
 					<span class="text">{{ net.name || net.id }}</span>
 					<img v-show="listStatus(net.status) == 'pass'" class="pass" :src="icons.pass" />
@@ -334,7 +345,7 @@ const copyText = (text: string | number | undefined) => {
 							<img class="refresh" :src="icons.refresh" @click="memberRefresh(selectedNetworkCopy)" />
 						</div>
 						<div class="member-grid">
-							<div v-for="m in memberList" v-mouse-menu="memberMouseContxt(m)" class="member-item">
+							<div v-for="m in memberList" :key="m.id" v-mouse-menu="memberMouseContxt(m.id)" class="member-item">
 								<img class="icon" :src="icons[m.icon]" />
 								<div class="name">{{ m.name || m.id }}</div>
 							</div>

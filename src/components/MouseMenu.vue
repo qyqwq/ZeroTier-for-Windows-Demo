@@ -17,11 +17,11 @@ let defaultOpen: (option: MouseOption) => void = (option: MouseOption) => { }
 type MouseOption = {
   x?: number;
   y?: number;
-  menuList: any[];
+  menuList: () => any[];
 }
 let contextMenuEvent: (e: MouseEvent) => void;
 export const vMouseMenuDirective = {
-  mounted: (el: HTMLElement, { value }: { value: any[] }) => {
+  mounted: (el: HTMLElement, { value }: { value: () => any[] }) => {
     contextMenuEvent = (e: MouseEvent) => {
       e.stopPropagation()
       e.preventDefault();
@@ -81,7 +81,7 @@ export default {
       defaultOpen = (option: MouseOption) => {
         posX.value = option.x || 0
         posY.value = option.y || 0
-        menuList.value = option.menuList
+        menuList.value = option.menuList()
         nextTick(() => {
           //算一下右侧距离
           // console.log(el)
@@ -101,7 +101,7 @@ export default {
             }
             transform.value = `translate(${tx},${ty})`
           }
-          nextTick(()=>{
+          nextTick(() => {
             show.value = true
           })
         })

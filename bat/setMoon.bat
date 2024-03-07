@@ -1,0 +1,1 @@
+zerotier-cli orbit %1 %1
