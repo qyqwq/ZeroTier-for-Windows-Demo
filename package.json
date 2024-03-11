@@ -1,5 +1,5 @@
 {
-  "name": "electron-vue-vite",
+  "name": "zerotier-for-windows-demo",
   "version": "28.0.0",
   "main": "dist-electron/main/index.js",
   "description": "Integrate all operations of ZeroTier on Windows systems",
