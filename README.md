@@ -3,9 +3,10 @@
 Demo版 暂时只有简中
 
 ## 感谢
-[![electron-vite-vue](https://github.com/electron-vite.png?size=40)](https://github.com/electron-vite/electron-vite-vue)
-[![electron-vite-vue](https://avatars.githubusercontent.com/u/6128107?s=50&v=4)](https://github.com/vuejs/core)
-[![electron-vite-vue](/public/Koa.png)](https://github.com/koajs/koa)
+[![ZeroTier](https://avatars.githubusercontent.com/u/4173285?s=60&v=4)](https://github.com/zerotier/ZeroTierOne)
+[![electron-vite-vue](https://github.com/electron-vite.png?size=60)](https://github.com/electron-vite/electron-vite-vue)
+[![vue3](https://avatars.githubusercontent.com/u/6128107?s=70&v=4)](https://github.com/vuejs/core)
+[![Koa](/public/Koa.png?v=2)](https://github.com/koajs/koa)
 
 <!-- [![GitHub Build](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml/badge.svg)](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml)
 [![GitHub Discord](https://img.shields.io/badge/chat-discord-blue?logo=discord)](https://discord.gg/sRqjYpEAUK) -->
