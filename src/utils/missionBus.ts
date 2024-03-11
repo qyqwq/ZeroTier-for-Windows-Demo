@@ -19,7 +19,7 @@ const timeoutfn = () => {
 const installZero = () => window.nodeAPI.installZero();
 const getToken = () => window.nodeAPI.readZerotierToken();
 const startService = () => window.nodeAPI.starteZero();
-// sendlog.log(new TextDecoder('gbk').decode(e.data))
+// sendlog.log()
 
 //预设错误修复
 let defaultError: Record<string, missionObject> = {
@@ -130,6 +130,19 @@ const getNetworkById = (netId: string) => {
 const getMemberById = (net: userNetwork, id: string): netMember | undefined => {
   return net?.memberList?.find((e) => e.id == id);
 };
+//id 名称 键值对
+const nameMap: Ref<Record<string, string>> = computed(() => {
+  let map: Record<any, any> = {};
+  localJsonData?.joinedNetworkList?.forEach((net) => {
+    net?.memberList?.forEach((member: netMember) => {
+      let id = member.id as string;
+      map[id] = member.name;
+    });
+  });
+  // console.log('nameMap', nameMap)
+  return map;
+});
+
 // ==============================================================================
 // ==                                   本地API请求                                ==
 // ==============================================================================
@@ -344,12 +357,12 @@ const getPeerList = () => {
       .requestApi({
         url: "peer",
       })
-      .then((res) => {
-        if(res.status = res){
+      .then((res: any) => {
+        if ((res.status = res)) {
           sendlog.log("获取相邻节点列表");
           console.log("获取相邻节点列表", res.data);
-          peerList.value = res.data
-          resolve();
+          peerList.value = res.data;
+          resolve("");
         }
       });
   });
@@ -646,6 +659,43 @@ const updateMemberData = (netId: string, member: netMember) =>
         resolve("");
       });
   });
+//授权成员
+const memberAuthorized = (
+  netId: string,
+  memberId: string,
+  authorized: Boolean
+) =>
+  new Promise((resolve, reject) => {
+    let net = getNetworkById(netId);
+    window.nodeAPI
+      .requestApi({
+        type: "official",
+        url: `network/${netId}/member/${memberId}`,
+        method: "POST",
+        data: {
+          config: {
+            authorized,
+          },
+        },
+        headers: {
+          Authorization: net.Authorization,
+        },
+      }).then(res=>{
+        resolve(res)
+      })
+      
+  });
+//ping一个网络成员
+const pingMember = (ip:string)=> new Promise((resolve)=>{
+  window.nodeAPI.pingMember(ip).then(res=>{
+    // console.log(res.data)
+    let showAvg:string = ({
+      "0.000": '<1ms',
+      "unknown": '--'
+    }as Record<string,string>)[res.data.avg] || res.data.avg.replace(/(\d*).(\d*)/,'$1ms')
+    resolve(showAvg)
+  })
+})
 //管理员功能
 const networkAdminService = () => {
   const service = (net: userNetwork) => {
@@ -660,6 +710,71 @@ const networkAdminService = () => {
     resolve("");
   });
 };
+// ------------------ 文件传输 ------------------------ //
+const uploadFileList: Ref<uploadFileType[]> = ref([]); //我上传的文件列表
+const takeFileList: Ref<uploadFileType[]> = ref([]); //我接收的文件列表
+//文件大小
+const showfileSize = (size: number) => {
+  let symbolArr = ["Byte", "KB", "MB", "GB", "TB", "PB"];
+  let symbolIndex = 0;
+  while (size >= 1024 && symbolIndex < symbolArr.length - 1) {
+    size = size / 1024;
+    size = Number(size.toFixed(2));
+    symbolIndex++;
+  }
+  return String(size) + symbolArr[symbolIndex];
+};
+const takeUploadFileInfo = (data: any) => {
+  let {
+    fileName,
+    size,
+    originId,
+    upLoadId,
+  }: { fileName: string; size: number; originId: string; upLoadId: string } =
+    data;
+  let ori = nameMap.value[originId] || originId;
+  let showSize = showfileSize(Number(size));
+  sendlog.log(`收到来自${ori}的文件请求`, fileName, showSize);
+  takeFileList.value.push({
+    fileName: fileName,
+    size,
+    originId,
+    takeId: zerotierStatus.address,
+    upLoadId,
+  });
+};
+const uploadFileInfo = ({
+  file,
+  memberIps,
+  originId,
+  takeId,
+}: {
+  file: File;
+  memberIps: string[];
+  originId: string;
+  takeId: string;
+}) => {
+  let upLoadId = file.name + "-" + file.size + "-" + file.lastModified;
+  //发送要上传的文件信息
+  window.nodeAPI.requestMember({
+    url: "/uploadFileInfo",
+    memberIps,
+    data: {
+      fileName: file.name,
+      size: file.size,
+      originId,
+      upLoadId,
+    },
+  });
+  uploadFileList.value.push({
+    fileName: file.name,
+    size: file.size,
+    originId,
+    takeId,
+    upLoadId,
+  });
+};
+
 //接收node接口数据
 const onNodeServeData = () =>
   new Promise((resolve, reject) => {
@@ -668,6 +783,8 @@ const onNodeServeData = () =>
       syncNetworkData: setSyncNetworkData,
       //请求网络成员数据
       getMemberData: getMemberData,
+      //文件传输请求
+      takeUploadFileInfo: takeUploadFileInfo,
     };
     //接收 网络成员列表消息
     window.nodeAPI.onWebContentsSend((data: any) => {
@@ -693,7 +810,7 @@ const init = () => {
     .then(getToken)
     .then(getZeroTierStatus)
     .then(joinedNetworkList)
-    .then(networkAdminService)
+    .then(networkAdminService);
 };
 
 export default {
@@ -720,5 +837,12 @@ export default {
   updateMemberData,
   memberListUpdateCount,
   peerList,
-  getPeerList
+  getPeerList,
+  uploadFileInfo,
+  uploadFileList,
+  takeFileList,
+  nameMap,
+  showfileSize,
+  memberAuthorized,
+  pingMember
 };

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import JoinPage from './components/JoinPage.vue'
 import Transit from './components/Transit.vue'
+import Download from './components/Download.vue'
+import CreateNet from './components/CreateNet.vue'
 import Message from './components/Message.vue'
 import { messageApi } from './components/Message.vue'
 import Modal from './components/Modal.vue'
@@ -17,12 +19,14 @@ window.$message = messageApi
 window.$modal = ModalApi
 const tablist = {
   0: '加入网络',
-  // 1: '创建网络',
-  2: '中转设置'
+  1: '创建网络',
+  2: '中转设置',
 }
-let tabComponentMap = {
+let tabComponentMap: Record<number, any> = {
   0: JoinPage,
-  2: Transit
+  1: CreateNet,
+  2: Transit,
+  // 3: Download
 }
 const tabComponent = computed(() => {
   return tabComponentMap[tabSelected.value]
@@ -54,7 +58,10 @@ const appClick = () => {
     </div>
     <div class="main-body">
       <div class="left">
-        <img :src="icons.please" />
+        <div class="iconList">
+          <!-- <img :src="icons.download" @click="tabSelected = 3" /> -->
+          <img :src="icons.please" />
+        </div>
       </div>
       <div class="right">
         <KeepAlive>
@@ -176,10 +183,21 @@ const appClick = () => {
     justify-content: center;
     padding: 0 0 1rem;
 
+    .iconList {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
     img {
       width: 2.5rem;
       border-radius: 10px;
       cursor: pointer;
+
+      // background-color: #676767;
+      &+img {
+        margin: 1rem 0 0;
+      }
     }
   }
 

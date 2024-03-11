@@ -1,9 +1,9 @@
 /// <reference types="vite/client" />
 
-declare module '*.vue' {
-  import type { DefineComponent } from 'vue'
-  const component: DefineComponent<{}, {}, any>
-  export default component
+declare module "*.vue" {
+  import type { DefineComponent } from "vue";
+  const component: DefineComponent<{}, {}, any>;
+  export default component;
 }
 
 interface IElectronAPI {
@@ -13,15 +13,17 @@ interface IElectronAPI {
   readData: () => Promise<any>;
   starteZero: () => Promise<any>;
   writeData: (Object) => Promise<any>;
-  requestMember: ({ }) => Promise<any>;
+  requestMember: ({}) => Promise<any>;
   onWebContentsSend: (data: any) => void;
   addTransit: (serveId: any) => Promise<any>;
+  openBrowser: (url) => Promise<any>;
+  pingMember: (ip) => Promise<any>;
 }
-type apiresult = { code: number; status: string, data: any };
+type apiresult = { code: number; status: string; data: any };
 
 interface Window {
   // expose in the `electron/preload/index.ts`
-  ipcRenderer: import('electron').IpcRenderer;
+  ipcRenderer: import("electron").IpcRenderer;
   nodeAPI: IElectronAPI;
   $message: (option: string | Object) => void;
   $modal: (option: string | Object) => Promise<any>;
@@ -35,12 +37,10 @@ interface missionObject {
   finish?: Boolean;
 }
 
-
 interface localJsonDataType {
   [key: string]: any;
   nickname?: string; //昵称
   joinedNetworkList?: userNetwork[]; //加入过的网络列表
-
 }
 interface userNetwork {
   allowDNS?: Boolean;
@@ -54,9 +54,9 @@ interface userNetwork {
   status?: string;
   Authorization?: string;
   memberList?: netMember[];
-  adminIds?: any[];//管理员id列表
+  adminIds?: any[]; //管理员id列表
 }
-interface netMember{
+interface netMember {
   id?: string;
   authorized?: Boolean;
   lastSeen?: Number;
@@ -64,4 +64,12 @@ interface netMember{
   networkId?: string;
   name?: string;
   ip?: string;
+}
+//文件传输对象
+interface uploadFileType {
+  fileName: string;
+  size: number;
+  originId: string;
+  takeId: string;
+  upLoadId: string;
 }

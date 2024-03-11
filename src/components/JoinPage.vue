@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import missionBus from '@/utils/missionBus';
-import { useRequest } from 'vue-request';
 import checkbox from './checkbox.vue';
 import Dialog from './Dialog.vue';
 const {
@@ -15,7 +14,10 @@ const {
 	networkAdminService,
 	syncNetworkMember,
 	checkMemberName,
-	memberListUpdateCount
+	memberListUpdateCount,
+	uploadFileInfo,
+	memberAuthorized,
+	pingMember
 } = missionBus
 import { vMouseMenuDirective } from './MouseMenu.vue'
 const vMouseMenu = vMouseMenuDirective
@@ -211,10 +213,14 @@ const memberList = computed(() => {
 	if (selectedNetworkId.value) {
 		let memberList = selectedNetworkCopy.value.memberList || reactive([])
 		let adminIds = selectedNetworkCopy.value.adminIds || reactive([])
-		//自己放前面，图标特殊颜色，管理员特殊颜色
-		let list = memberList.map((member: any) => {
+		//自己放前面，图标特殊颜色，管理员特殊颜色 区分已授权未授权
+		let list = memberList.map((member: netMember) => {
 			let icon = 'user'
-			let sortc = 3
+			let sortc = 4
+			if (member.authorized) {
+				icon = 'user-online'
+				sortc = 3
+			}
 			if (member.id == zerotierStatus.address) {
 				icon = 'user-self'
 				sortc = 2
@@ -234,8 +240,8 @@ const memberList = computed(() => {
 	}
 	return []
 })
-const memberMouseContxt = (memberId: string) => {
-	return function () {
+const memberMouseContxt = (memberId: string | undefined) => {
+	return () => {
 		let member = selectedNetworkCopy.value.memberList?.find(e => e.id == memberId) || {}
 		return [{
 			label: 'ID: ' + member.id,
@@ -250,19 +256,92 @@ const memberMouseContxt = (memberId: string) => {
 			callback: () => {
 				copyText(member.ip)
 			}
-		}, {
-			label: '给ta传文件',
+		}, member.authorized ? {
+			label: '取消授权',
 			callback: () => {
-				window.$message('下版本一定')
+				// copyText(member.ip)
+				let netId = selectedNetworkId.value
+				let memberId = String(member.id)
+				window.$message('取消授权中')
+				memberAuthorized(netId, memberId, false).then((res: any) => {
+					console.log(res)
+					if (res.status == 'success') {
+						window.$message('取消成功')
+						memberRefresh(netId)
+					}
+				})
 			}
-		}]
+		} : {
+			label: '授权',
+			callback: () => {
+				let netId = selectedNetworkId.value
+				let memberId = String(member.id)
+				window.$message('授权中')
+				memberAuthorized(netId, memberId, true).then((res: any) => {
+					if (res.status == 'success') {
+						window.$message('授权成功')
+						memberRefresh(netId)
+					}
+				})
+			}
+		}
+			// {
+			// 	label: '给ta传文件',
+			// 	callback: () => {
+			// 		sendFileShow.value = true
+			// 		sendFileShowTitle.value = `发送给 ${member.name || member.id}`
+			// 		sendMember.value = member
+			// 		console.log('member', sendMember.value.ip)
+			// 		// window.$message('下次一定')
+			// 	}
+			// }
+		]
 	}
 }
 //刷新网络成员
-const memberRefresh = (net: userNetwork) => {
-	syncNetworkMember(String(net.id))
+const memberRefresh = (netId: string | undefined) => {
+	window.$message('刷新')
+	syncNetworkMember(String(netId))
 }
-
+//ping网络成员
+let pingMap: Record<string, string> = reactive({})
+const pingMemberByNet = () => {
+	window.$message('Ping')
+	selectedNetworkCopy.value.memberList?.forEach(member => {
+		let mIp = member.ip as string
+		if (!mIp) return
+		pingMember(mIp).then((pings: any) => {
+			pingMap[String(member.id)] = pings
+			// console.log(pingMap)
+		})
+	})
+}
+//发送文件
+const sendFileShow = ref(false)
+const sendFileShowTitle = ref('')
+const sendFileShowPath = ref('')
+const sendMember: Ref<netMember> = ref({})
+let sendFile: File | null = null
+const selectFileChange = (e: any) => {
+	// console.log('选择文件', e)
+	// sendlog.log('选择文件', e.target.value)
+	let file = e.target.files[0];
+	sendFile = file
+	sendFileShowPath.value = file.path
+	console.log('选择文件', file)
+}
+const sendFileShowConfirm = () => {
+	if (sendFile && sendMember.value.id) {
+		console.log('发送ip', sendMember.value.ip)
+		uploadFileInfo({
+			file: sendFile,
+			memberIps: [String(sendMember.value.ip)],
+			originId: zerotierStatus.address,
+			takeId: String(sendMember.value.id)
+		})
+	}
+	sendFileShow.value = false
+}
 //点击复制
 const copyText = (text: string | number | undefined) => {
 	if (text) {
@@ -342,12 +421,16 @@ const copyText = (text: string | number | undefined) => {
 					<div class="member">
 						<div class="member-title">
 							<span>网络成员</span>
-							<img class="refresh" :src="icons.refresh" @click="memberRefresh(selectedNetworkCopy)" />
+							<img class="refresh" :src="icons.refresh" @click="memberRefresh(selectedNetworkCopy.id)" />
+							<span class="ping" @click="pingMemberByNet">Ping</span>
 						</div>
 						<div class="member-grid">
 							<div v-for="m in memberList" :key="m.id" v-mouse-menu="memberMouseContxt(m.id)" class="member-item">
 								<img class="icon" :src="icons[m.icon]" />
-								<div class="name">{{ m.name || m.id }}</div>
+								<div class="name-body">
+									<span class="name">{{ m.name || m.id }}</span>
+									<span class="ping">{{pingMap[String(m.id)]}}</span>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -367,14 +450,20 @@ const copyText = (text: string | number | undefined) => {
 			allowDNS 允许 DNS。默认否。允许 ZeroTier 设置 DNS 服务器。-->
 		<Dialog v-model:show="joinNetworkDialogShow" title="网络ID" @confirm="joinNetworkConfirm">
 			<div class="net-id-input">
-				<!-- <div>网络ID</div> -->
 				<input v-model="joinNetworkId" class="input">
 			</div>
 		</Dialog>
 		<Dialog v-model:show="adminTokenShow" title="管理员Token" @confirm="adminTokenShowConfirm">
 			<div class="net-id-input">
-				<!-- <div>网络ID</div> -->
 				<input v-model="adminToken" class="input">
+			</div>
+		</Dialog>
+		<Dialog v-model:show="sendFileShow" :title="sendFileShowTitle" @confirm="sendFileShowConfirm">
+			<div class="net-id-input">
+				<input id="selectfile" @change="selectFileChange" type="file" v-show="false">
+				<label class="selectfile-label" for="selectfile">
+					{{ sendFileShowPath || '点击选择文件' }}
+				</label>
 			</div>
 		</Dialog>
 
@@ -385,7 +474,6 @@ const copyText = (text: string | number | undefined) => {
 .join-page {
 	@title-size: 1.1rem;
 	@padding-top: 1rem;
-
 	height: 100%;
 	display: flex;
 
@@ -555,7 +643,6 @@ const copyText = (text: string | number | undefined) => {
 			& * {
 				flex-grow: 1;
 			}
-
 			.name {
 				font-size: 1.1rem;
 				color: #FDB25D;
@@ -586,14 +673,19 @@ const copyText = (text: string | number | undefined) => {
 					display: flex;
 
 					.refresh {
-						margin: 0 0 0 1rem;
+						margin: 0 1rem;
+						cursor: pointer;
+					}
+
+					.ping {
 						cursor: pointer;
 					}
 				}
 
 				.member-grid {
 					display: grid;
-					grid-template-columns: repeat(auto-fill, 9rem);
+					grid-template-columns: repeat(auto-fill, min(45%, 15rem));
+
 					grid-template-rows: repeat(auto-fill, 2rem);
 					gap: 1rem;
 					flex-grow: 1;
@@ -624,10 +716,21 @@ const copyText = (text: string | number | undefined) => {
 							margin: 0 .5rem 0 0;
 						}
 
+						.name-body{
+							display: flex;
+							align-items: center;
+							justify-content: space-between;
+							flex-grow: 1;
+							padding: 0 1rem 0 0;
+						}
 						.name {
 							white-space: nowrap;
 							overflow: hidden;
 							text-overflow: ellipsis;
+						}
+						.ping{
+							font-size: .8rem;
+							color: white;
 						}
 					}
 				}
@@ -659,6 +762,19 @@ const copyText = (text: string | number | undefined) => {
 		}
 	}
 
+}
+
+.selectfile-label {
+	border: 1px dashed;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 5rem;
+	border-radius: 10px;
+	color: #dbdbdb;
+	font-weight: 500;
+	cursor: pointer;
 }
 
 .net-id-input {

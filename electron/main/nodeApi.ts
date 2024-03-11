@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { ipcMain, shell } from "electron";
 import fs from "node:fs/promises";
 import axios from "axios";
 import { spawn, fork, exec } from "node:child_process";
@@ -7,6 +7,7 @@ import { errcodeMatch, CodeName } from "../utils/errcode";
 import { nodejsRequest } from "../electron-env";
 import { sendlog } from "../utils/log";
 import { onWebContentsSend } from "./index";
+import ping from "ping";
 import "./nodeServe";
 
 const localHref = "http://localhost:9993/";
@@ -108,18 +109,18 @@ ipcMain.handle("installZero", () => {
     });
     childProcess.on("close", (code) => {
       sendlog.log(`安装程序退出 code ${code}`);
-      if(code == 0){
+      if (code == 0) {
         resolve({
           status: "success",
           code: 200,
           data: {},
         });
-        return 
+        return;
       }
       resolve({
         status: "error",
         code: 0,
-        data:{},
+        data: {},
       });
     });
   });
@@ -240,7 +241,7 @@ ipcMain.handle("requestMember", async (event, oriData: any) => {
 ipcMain.handle("addTransit", async (event, serveId) => {
   return new Promise((resolve, reject) => {
     // let cmd = `zerotier-cli orbit ${serveId} ${serveId}`;
-    let cmd = `${path.join(process.cwd(),'bat/setMoon.bat')} ${serveId}`
+    let cmd = `${path.join(process.cwd(), "bat/setMoon.bat")} ${serveId}`;
 
     sendlog.log("中转服务器设置", cmd);
     const childProcess = exec(cmd);
@@ -255,21 +256,46 @@ ipcMain.handle("addTransit", async (event, serveId) => {
       });
     });
     childProcess.on("close", (code) => {
-      if(code == 0){
+      if (code == 0) {
         sendlog.log("中转服务器设置成功");
         resolve({
           status: "success",
           code: 200,
           data: {},
         });
-        return 
+        return;
       }
       resolve({
         status: "error",
         // code: 0,
         code: 0,
-        data: data,
+        data: {},
       });
+    });
+  });
+});
+//打开浏览器
+ipcMain.handle("openBrowser", async (event, url) => {
+  return new Promise((resolve, reject) => {
+    shell.openExternal(url);
+    resolve({
+      status: "success",
+      code: 200,
+      data: {},
+    });
+  });
+});
+//ping
+let gbk = new TextDecoder("gbk");
+ipcMain.handle("pingMember", async (event, url) => {
+  return new Promise((resolve, reject) => {
+    ping.promise.probe(url).then((res) => {
+      // console.log(res);
+      resolve({
+        status: "success",
+        code: 200,
+        data: res,
+      })
     });
   });
 });

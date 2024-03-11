@@ -1,4 +1,5 @@
 
+//https://www.iconfont.cn/collections/detail?spm=a313x.search_index.0.da5a778a4.acb63a81kxrVfU&cid=5599
 
 const pngicons = import.meta.glob('@/assets/*.png', { query: 'url' });
 const svgicons = import.meta.glob('@/assets/*.svg', { query: 'url' });

@@ -1,110 +1,72 @@
 <script setup lang="ts">
-import { sendlog } from "@/utils/log";
 import missionBus from "@/utils/missionBus";
 let {
-  getPeerList,
-  peerList,
-  localJsonData,
-  nameMap
+  uploadFileList,
+  takeFileList,
+  nameMap,
+  showfileSize
 } = missionBus
-
 const icons = inject('icons') as Record<string, string>
-const serveId = ref('')
-const addTransit = () => {
-  window.nodeAPI.addTransit(serveId.value).then((res: any) => {
-    if (res.status == 'success') {
-      window.$message('添加服务器成功')
-      getPeerList()
-    } else {
-      window.$message('添加服务器失败')
-    }
-  })
-}
-let initCount = 0
-onActivated(() => {
-  sendlog.log('中转页面显示初始化', ++initCount)
-  getPeerList()
-})
-const tabNum = ref(0)
-const isLeaf = computed(() => tabNum.value == 0)
-const isMoon = computed(() => tabNum.value == 1)
-const isPlanet = computed(() => tabNum.value == 2)
-const pathPrint = (arr:any[]) => arr.map(e => ({
-  ...e,
-  showPath: e.paths && e.paths[0] && e.paths[0].address || '',
-  name: nameMap.value[e.address] || ''
-}))
-const peerLeaf = computed(() => nameMap && pathPrint(peerList.value.filter((e:any) => e.role == 'LEAF')) || [])
-const peerMoon = computed(() => nameMap && pathPrint(peerList.value.filter((e:any) => e.role == 'MOON')) || [])
-const peerPlanet = computed(() => nameMap && pathPrint(peerList.value.filter((e:any) => e.role == 'PLANET')) || [])
+
+const tabNum: Ref<'0' | '1'> = ref('0')
+const isUpload = computed(() => tabNum.value == '0')
+const isTake = computed(() => tabNum.value == '1')
 
 const showList = computed(() => {
   return {
-    0: peerLeaf.value,
-    1: peerMoon.value,
-    2: peerPlanet.value,
+    0: uploadFileList.value,
+    1: takeFileList.value,
   }[tabNum.value]
-  // return peerList.value.concat(peerList.value)
 })
-const refresh = () => {
-  getPeerList()
-  window.$message('刷新')
-}
 </script>
 
 <template>
   <div class="transit">
-    <div class="title">
-      <div>
-        ID:
-      </div>
-      <div>
-        <input class="input" v-model="serveId" />
-      </div>
-      <div class="add" @click="addTransit">
-        添加中转
-      </div>
-    </div>
     <div class="transit-body">
-      <!-- <div class="transit-body-title">节点列表</div> -->
       <div class="tablist">
-        <div class="tablist-item" :class="{ 'active': isLeaf }" @click="tabNum = 0">
-          <span>网络成员</span>
+        <div class="tablist-item" :class="{ 'active': isUpload }" @click="tabNum = '0'">
+          <span>我发送的文件</span>
           <Transition name="fade">
-            <div v-show="isLeaf" class="arrow"></div>
+            <div v-show="isUpload" class="arrow"></div>
           </Transition>
         </div>
-        <div class="tablist-item" :class="{ 'active': isMoon }" @click="tabNum = 1">
-          <span>中转服务器</span>
+        <div class="tablist-item" :class="{ 'active': isTake }" @click="tabNum = '1'">
+          <span>我接收的文件</span>
           <Transition name="fade">
-            <div v-show="isMoon" class="arrow"></div>
+            <div v-show="isTake" class="arrow"></div>
           </Transition>
         </div>
-        <div class="tablist-item" :class="{ 'active': isPlanet }" @click="tabNum = 2">
-          <span>官方根服务器</span>
-          <Transition name="fade">
-            <div v-show="isPlanet" class="arrow"></div>
-          </Transition>
-        </div>
-        <img class="refresh" :src="icons.refresh" @click="refresh" />
+        <!-- <img class="refresh" :src="icons.refresh" @click="refresh" /> -->
       </div>
       <div class="grid-body">
         <div class="grid">
-          <div>ID</div>
-          <div>昵称</div>
-          <div>延迟</div>
-          <div>IP路径</div>
+          <div>文件名称</div>
+          <div>进度</div>
+          <div>大小</div>
+          <div v-show="isUpload">接收人</div>
+          <div v-show="isTake">发送人</div>
+          <div>状态</div>
         </div>
         <div class="scroll">
-          <div class="grid" v-for="peer in showList">
-            <div>{{ peer.address }}</div>
-            <div class="name">{{ peer.name || '-' }}</div>
-            <div>{{ peer.latency || '-' }}</div>
-            <div>{{ peer.showPath || '-' }}</div>
+          <div class="grid" v-for="item in showList">
+            <div class="name" :title="item.fileName">{{ item.fileName }}</div>
+            <div>{{ '-' }}</div>
+            <div>{{ showfileSize(item.size) }}</div>
+            <div class="name">{{ nameMap[item.takeId] || item.takeId }}</div>
+            <div>{{ '-' }}</div>
           </div>
         </div>
       </div>
     </div>
+    <!-- <div>
+      <div>下载路径</div>
+    </div>
+    <div>
+      <div>接收文件</div>
+      <div>
+        文件列表
+      </div>
+    </div> -->
   </div>
 </template>
 
@@ -203,7 +165,8 @@ const refresh = () => {
         z-index: 10;
       }
     }
-    .refresh{
+
+    .refresh {
       cursor: pointer;
     }
 
@@ -229,7 +192,7 @@ const refresh = () => {
     .grid {
       display: grid;
       grid-template-rows: 2rem;
-      grid-template-columns: 8rem 8rem 6rem 10rem;
+      grid-template-columns: 10rem 10rem 6rem 6rem 6rem;
 
       .name {
         white-space: nowrap;
