@@ -1,79 +1,71 @@
-# electron-vite-vue
+# ZeroTier-for-Windows
 
-🥳 Really simple `Electron` + `Vue` + `Vite` boilerplate.
+Demo版 暂时只有简中
 
-<!-- [![awesome-vite](https://awesome.re/mentioned-badge.svg)](https://github.com/vitejs/awesome-vite) -->
-<!-- [![Netlify Status](https://api.netlify.com/api/v1/badges/ae3863e3-1aec-4eb1-8f9f-1890af56929d/deploy-status)](https://app.netlify.com/sites/electron-vite/deploys) -->
-<!-- [![GitHub license](https://img.shields.io/github/license/caoxiemeihao/electron-vite-vue)](https://github.com/electron-vite/electron-vite-vue/blob/main/LICENSE) -->
-<!-- [![GitHub stars](https://img.shields.io/github/stars/caoxiemeihao/electron-vite-vue?color=fa6470)](https://github.com/electron-vite/electron-vite-vue) -->
-<!-- [![GitHub forks](https://img.shields.io/github/forks/caoxiemeihao/electron-vite-vue)](https://github.com/electron-vite/electron-vite-vue) -->
-[![GitHub Build](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml/badge.svg)](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml)
-[![GitHub Discord](https://img.shields.io/badge/chat-discord-blue?logo=discord)](https://discord.gg/sRqjYpEAUK)
+## 感谢
+[![electron-vite-vue](https://github.com/electron-vite.png?size=40)](https://github.com/electron-vite/electron-vite-vue)
+[![electron-vite-vue](https://avatars.githubusercontent.com/u/6128107?s=50&v=4)](https://github.com/vuejs/core)
+[![electron-vite-vue](/public/Koa.png)](https://github.com/koajs/koa)
 
-## Features
+<!-- [![GitHub Build](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml/badge.svg)](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml)
+[![GitHub Discord](https://img.shields.io/badge/chat-discord-blue?logo=discord)](https://discord.gg/sRqjYpEAUK) -->
 
-📦 Out of the box  
-🎯 Based on the official [template-vue-ts](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-vue-ts), less invasive  
-🌱 Extensible, really simple directory structure  
-💪 Support using Node.js API in Electron-Renderer  
-🔩 Support C/C++ native addons  
-🖥 It's easy to implement multiple windows  
+## 预览
 
-## Quick Setup
+![Preview.mp4](/public/Preview.gif?t=1)
+
+## 目前完成的功能
+
+- 加入网络
+  - 自动安装 ZeroTier One 核心
+  - 网络成员自己设置备注
+- 网络功能
+  - 批量 Ping 成员
+  - 查看成员 ID 与 IP
+  - 默认连接 与 全局连接
+- 网络管理 - 官方平台创建的网络
+  - 设置管理 Token
+  - 成员授权
+  - 网络内成员信息同步
+- 中转设置
+  - 添加中转服务器
+  - 查看 网络成员 与 中转服务 连接信息
+- 语言支持
+  - 简体中文
+- 平台支持
+  - Windows
+## 计划添加的功能
+- 网络功能
+  - 成员文件共享
+  - 设置开放的端口，可供成员一键访问本地项目
+- 网络创建
+  - 支持本地创建 官方平台的网络
+  - 支持本地创建 个人终端上的网络
+- 网络管理
+  - 可删除/添加成员
+  - 可管理 个人终端的网络
+- 程序自动更新
+  - 自动更新本程序
+  - 自动更新 ZeroTier One 核心
+- 语言支持
+  - Engilsh
+- 平台支持
+  - MacOS
+## 启动
 
 ```sh
 # clone the project
-git clone https://github.com/electron-vite/electron-vite-vue.git
+git clone https://github.com/qyqwq/ZeroTier-for-Windows-Demo
 
 # enter the project directory
-cd electron-vite-vue
+cd ZeroTier-for-Windows-Demo
 
 # install dependency
 npm install
 
 # develop
 npm run dev
+
+# build
+npm run build
 ```
-
-## Debug
-
-![electron-vite-react-debug.gif](https://github.com/electron-vite/electron-vite-react/blob/main/electron-vite-react-debug.gif?raw=true)
-
-## Directory
-
-```diff
-+ ├─┬ electron
-+ │ ├─┬ main
-+ │ │ └── index.ts    entry of Electron-Main
-+ │ └─┬ preload
-+ │   └── index.ts    entry of Preload-Scripts
-  ├─┬ src
-  │ └── main.ts       entry of Electron-Renderer
-  ├── index.html
-  ├── package.json
-  └── vite.config.ts
-```
-
-<!--
-## Be aware
-
-🚨 By default, this template integrates Node.js in the Renderer process. If you don't need it, you just remove the option below. [Because it will modify the default config of Vite](https://github.com/electron-vite/vite-plugin-electron-renderer#config-presets-opinionated).
-
-```diff
-# vite.config.ts
-
-export default {
-  plugins: [
--   // Use Node.js API in the Renderer-process
--   renderer({
--     nodeIntegration: true,
--   }),
-  ],
-}
-```
--->
-
-## FAQ
-
-- [C/C++ addons, Node.js modules - Pre-Bundling](https://github.com/electron-vite/vite-plugin-electron-renderer#dependency-pre-bundling)
-- [dependencies vs devDependencies](https://github.com/electron-vite/vite-plugin-electron-renderer#dependencies-vs-devdependencies)
