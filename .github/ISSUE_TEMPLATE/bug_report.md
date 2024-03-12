@@ -1,4 +1,4 @@
----
+<!-- ---
 
 name: 🐞 Bug report
 about: Create a report to help us improve
@@ -8,4 +8,4 @@ assignees: ''
 
 ---
 
-#### Describe the bug
+#### Describe the bug -->
